@@ -18,21 +18,21 @@ jobs:
     - name: Скачиваем и обрабатываем список доменов для adlist.dat
       run: |
         mkdir -p data
-        echo "Скачиваем актуальный список Hagezi Pro..."
-        curl -sSLf https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt -o temp.txt
+        echo "Скачиваем актуальный список Hagezi Ultimate..."
+        curl -sSLf https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt -o temp.txt
         echo "Чистим комментарии..."
         grep -v '^#' temp.txt > temp_cleaned.txt
         echo "Фильтруем игнор-лист..."
         if [ -f ignore.list ]; then
-          grep -v -F -f ignore.list temp_cleaned.txt > data/hagezi-pro || echo "Ошибка фильтрации!"
+          grep -v -F -f ignore.list temp_cleaned.txt > data/hagezi-ultimate || echo "Ошибка фильтрации!"
         else
-          mv temp_cleaned.txt data/hagezi-pro
+          mv temp_cleaned.txt data/hagezi-ultimate
           echo "ignore.list не найден, пропускаем фильтрацию"
         fi
         echo "Очистка..."
         rm temp.txt temp_cleaned.txt
-        echo "hagezi-pro contents (first 5 lines):"
-        head -n 5 data/hagezi-pro || echo "Файл не создан!"
+        echo "hagezi-ultimate contents (first 5 lines):"
+        head -n 5 data/hagezi-ultimate || echo "Файл не создан!"
         
     - name: Скачиваем и обрабатываем список доменов для adlist.json
       run: |
