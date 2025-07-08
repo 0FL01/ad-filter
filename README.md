@@ -1,6 +1,6 @@
 # Ad-Filter 🚫✨
 
-Списки доменов с рекламой на базе Hagezi Pro для использования с клиентами на базе Xray, Sing-Box и Mihomo. Ежедневное обновление.
+Списки доменов с рекламой на базе Hagezi Ultimate для использования с клиентами на базе Xray, Sing-Box и Mihomo. Ежедневное обновление.
 
 ![image](https://github.com/user-attachments/assets/626c5ead-f456-4817-b0ae-21e8a8abef81)
 
@@ -8,11 +8,11 @@
 ## Последние версии
 Скачивайте самые свежие списки в любое время:
 
-- 🩻 [Xray] https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.dat
-- 📦 [Sing-Box] https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.srs
-- 😼 [Mihomo] https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.mrs
+- 🩻 [Xray] https://github.com/0fl01/ad-filter/releases/latest/download/adlist.dat
+- 📦 [Sing-Box] https://github.com/0fl01/ad-filter/releases/latest/download/adlist.srs
+- 😼 [Mihomo] https://github.com/0fl01/ad-filter/releases/latest/download/adlist.mrs
 ## Как это работает
-1. **Источник данных**: Загружаются домены из wildcard-списка [Hagezi Pro](https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt).
+1. **Источник данных**: Загружаются домены из wildcard-списка [Hagezi Pro](https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt).
 2. **Обработка**: Удаляются комментарии, форматируются данные и компилируются в нужные форматы.
 3. **Автоматизация**: GitHub Actions запускается ежедневно для создания и публикации файлов.
 4. **Доставка**: Файлы публикуются как активы релиза GitHub для удобного доступа.
@@ -27,7 +27,7 @@
   "routing": {
     "rules": [
       {
-        "domain": "ext:adlist.dat:hagezi-pro",
+        "domain": "ext:adlist.dat:hagezi-ultimate",
         "outboundTag": "block"
       }
     ]
@@ -37,11 +37,11 @@
 > [!TIP]
 > При использовании XKeen на роутерах Keenetic можно скачать командой в entware:
 > ```
-> curl -L -o /opt/etc/xray/dat/adlist.dat https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.dat
+> curl -L -o /opt/etc/xray/dat/adlist.dat https://github.com/0fl01/ad-filter/releases/latest/download/adlist.dat
 > ```
 > Также можно добавить автоматизацию Cron (автообновление каждый день в 5 утра + перезагрузка XKeen):
 > ``` 
-> echo "0 5 * * * /opt/bin/curl -L -o /opt/etc/xray/dat/adlist.dat https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.dat && xkeen -restart" >> /opt/var/spool/cron/crontabs/root
+> echo "0 5 * * * /opt/bin/curl -L -o /opt/etc/xray/dat/adlist.dat https://github.com/0fl01/ad-filter/releases/latest/download/adlist.dat && xkeen -restart" >> /opt/var/spool/cron/crontabs/root
 > ```
 
 ### Для Sing-Box (с версии 1.11.0)
@@ -61,7 +61,7 @@
         "tag": "ads",
         "type": "remote",
         "format": "binary",
-        "url": "https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.srs",
+        "url": "https://github.com/0fl01/ad-filter/releases/latest/download/adlist.srs",
         "download_detour": "direct"
       }
     ]
@@ -78,7 +78,7 @@ rule-providers:
     type: http
     behavior: domain
     format: mrs
-    url: https://github.com/zxc-rv/ad-filter/releases/latest/download/adlist.mrs
+    url: https://github.com/0fl01/ad-filter/releases/latest/download/adlist.mrs
     path: ./rule-providers/adlist.mrs
     interval: 86400
 rules:
