@@ -1,20 +1,16 @@
 name: Обновление списков
-
 on:
   schedule:
     - cron: '25 1 * * *'
   workflow_dispatch:
-
 jobs:
   Update_lists:
     runs-on: ubuntu-latest
-    
     steps:
     - name: Чекаем репо
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Скачиваем и обрабатываем список доменов для adlist.dat
       run: |
         mkdir -p data
@@ -33,7 +29,6 @@ jobs:
         rm temp.txt temp_cleaned.txt
         echo "hagezi-ultimate contents (first 5 lines):"
         head -n 5 data/hagezi-ultimate || echo "Файл не создан!"
-        
     - name: Скачиваем и обрабатываем список доменов для adlist.json
       run: |
         echo "Скачиваем список для adlist.json..."
@@ -66,36 +61,31 @@ jobs:
         jq --slurpfile domains <(jq -R -s -c 'split("\n") | map(select(length > 0))' filtered_domains.txt) \
           '.rules[0].domain_suffix = $domains[0]' adlist.json > temp_adlist.json && mv temp_adlist.json adlist.json
         echo "Очистка..."
-        rm temp_domains.txt filtered_domains.txt
+        # Не удаляем filtered_domains.txt, он понадобится для Unbound
+        rm temp_domains.txt
         echo "adlist.json содержит (первые 1000 символов):"
         head -c 1000 adlist.json || echo "adlist.json не создан!"
-
     - name: Устанавливаем GO
       uses: actions/setup-go@v5
       with:
         go-version: 'stable'
-
     - name: Загружаем зависимости GO
       run: go mod download
-
     - name: Компилируем adlist.dat
       run: |
         go run ./
         echo "Ищем adlist.dat в root:"
         ls -la adlist.dat || echo "adlist.dat не найден в root"
-
     - name: Устанавливаем Sing-Box
       run: |
         echo "Установка Sing-Box..."
         bash <(curl -fsSL https://sing-box.app/deb-install.sh)
-        
     - name: Компилируем adlist.srs
       run: |
         echo "Компилируем adlist.json в adlist.srs..."
         sing-box rule-set compile adlist.json
         echo "Проверяем размер adlist.srs :"
         ls -lh adlist.srs || echo "adlist.srs не создан!"
-
     - name: Скачиваем и обрабатываем список доменов для adlist.mrs
       run: |
         echo "Получаем URL последнего релиза mihomo..."
@@ -116,14 +106,14 @@ jobs:
         grep -v '^#' pro-onlydomains.txt > temp_cleaned.txt || { echo "Ошибка очистки комментариев!"; exit 1; }
         echo "Фильтруем игнор-лист..."
         if [ -f ignore.list ]; then
-          grep -v -F -f ignore.list temp_cleaned.txt > filtered_domains.txt || { echo "Ошибка фильтрации игнор-листа!"; exit 1; }
+          grep -v -F -f ignore.list temp_cleaned.txt > filtered_domains_mrs.txt || { echo "Ошибка фильтрации игнор-листа!"; exit 1; }
           echo "Фильтрация прошла!"
         else
-          mv temp_cleaned.txt filtered_domains.txt
+          mv temp_cleaned.txt filtered_domains_mrs.txt
           echo "ignore.list не найден, пропускаем фильтрацию"
         fi
         echo "Добавляем '+.' в начало строк..."
-        sed 's/^/+./' filtered_domains.txt > mihomo_domains.txt || { echo "Ошибка обработки списка!"; exit 1; }
+        sed 's/^/+./' filtered_domains_mrs.txt > mihomo_domains.txt || { echo "Ошибка обработки списка!"; exit 1; }
         echo "Проверяем первые 5 строк mihomo_domains.txt:"
         head -n 5 mihomo_domains.txt || echo "mihomo_domains.txt не создан!"
         echo "Компилируем adlist.mrs..."
@@ -131,12 +121,24 @@ jobs:
         echo "Проверяем размер adlist.mrs:"
         ls -lh adlist.mrs || echo "adlist.mrs не создан!"
         echo "Очистка..."
-        rm mihomo-bin mihomo_domains.txt pro-onlydomains.txt temp_cleaned.txt filtered_domains.txt
+        rm mihomo-bin mihomo_domains.txt pro-onlydomains.txt temp_cleaned.txt filtered_domains_mrs.txt
 
+        
+    - name: Генерируем список для Unbound
+      run: |
+        echo "Генерируем hagezi-pro-unbound.conf..."
+        # Используем файл filtered_domains.txt, который остался от шага с adlist.json
+        # Форматируем каждую строку в: local-zone: "domain.com" always_nxdomain
+        awk '{print "local-zone: \""$1"\" always_nxdomain"}' filtered_domains.txt > hagezi-pro-unbound.conf
+        echo "Проверяем первые 5 строк hagezi-pro-unbound.conf:"
+        head -n 5 hagezi-pro-unbound.conf || echo "Файл hagezi-pro-unbound.conf не создан!"
+        echo "Проверяем размер файла:"
+        ls -lh hagezi-pro-unbound.conf
+        echo "Очистка..."
+        rm filtered_domains.txt adlist.json
     - name: Ставим дату релиза
       id: set-date
       run: echo "RELEASE_DATE=$(date +%d.%m.%Y)" >> $GITHUB_ENV
-
     - name: Создаем релиз
       uses: softprops/action-gh-release@v2
       with:
@@ -146,11 +148,11 @@ jobs:
           adlist.dat
           adlist.srs
           adlist.mrs
+          hagezi-pro-unbound.conf
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Удаляем старые релизы
       uses: dev-drprasad/delete-older-releases@v0.3.4
       with:
@@ -158,11 +160,10 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
     - name: Удаляем старые workflow runs
       uses: Mattraks/delete-workflow-runs@v2
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} 
+        token: ${{ secrets.GITHUB_TOKEN }}
         repository: ${{ github.repository }}
         delete_workflow_pattern: update.yml
         retain_days: 7
