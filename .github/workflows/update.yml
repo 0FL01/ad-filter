@@ -61,7 +61,6 @@ jobs:
         jq --slurpfile domains <(jq -R -s -c 'split("\n") | map(select(length > 0))' filtered_domains.txt) \
           '.rules[0].domain_suffix = $domains[0]' adlist.json > temp_adlist.json && mv temp_adlist.json adlist.json
         echo "Очистка..."
-        # Не удаляем filtered_domains.txt, он понадобится для Unbound
         rm temp_domains.txt
         echo "adlist.json содержит (первые 1000 символов):"
         head -c 1000 adlist.json || echo "adlist.json не создан!"
@@ -89,7 +88,7 @@ jobs:
     - name: Скачиваем и обрабатываем список доменов для adlist.mrs
       run: |
         echo "Получаем URL последнего релиза mihomo..."
-        MIHOMO_URL=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | jq -r '.assets[] | select(.name | test("mihomo-linux-amd64-v.*\\.gz$")) | .browser_download_url' || echo "Ошибка получения URL!")
+        MIHOMO_URL=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | jq -r '.assets[] | select(.name | test("mihomo-linux-amd64-v[0-9]+\\.[0-9]+\\.[0-9]+\\.gz$")) | .browser_download_url' || echo "Ошибка получения URL!")
         if [ -z "$MIHOMO_URL" ]; then
           echo "Ошибка: URL mihomo не получен! Выходим..."
           exit 1
@@ -122,13 +121,9 @@ jobs:
         ls -lh adlist.mrs || echo "adlist.mrs не создан!"
         echo "Очистка..."
         rm mihomo-bin mihomo_domains.txt pro-onlydomains.txt temp_cleaned.txt filtered_domains_mrs.txt
-
-        
     - name: Генерируем список для Unbound
       run: |
         echo "Генерируем hagezi-pro-unbound.conf..."
-        # Используем файл filtered_domains.txt, который остался от шага с adlist.json
-        # Форматируем каждую строку в: local-zone: "domain.com" always_nxdomain
         awk '{print "local-zone: \""$1"\" always_nxdomain"}' filtered_domains.txt > hagezi-pro-unbound.conf
         echo "Проверяем первые 5 строк hagezi-pro-unbound.conf:"
         head -n 5 hagezi-pro-unbound.conf || echo "Файл hagezi-pro-unbound.conf не создан!"
